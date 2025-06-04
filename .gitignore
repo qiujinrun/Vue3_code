@@ -1,0 +1,16 @@
+# 忽略所有 node_modules 目录
+node_modules/
+
+# 忽略打包输出（根据需要添加）
+dist/
+build/
+
+# 忽略 lock 文件（可选）
+pnpm-lock.yaml
+
+# 忽略 IDE 配置（根据你用的 IDE）
+.vscode/
+.idea/
+
+# 忽略日志文件
+*.log
