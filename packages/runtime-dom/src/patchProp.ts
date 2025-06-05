@@ -1,5 +1,6 @@
 //主要是对节点元素的属性操作 class style event
-
+//根据 key 的不同类型（class、style、事件、普通属性）
+// ，调用不同的处理函数来更新真实 DOM。
 import { patchAttr } from "./modules/patchAttr";
 import { patchClass } from "./modules/patchClass";
 import { patchEvent } from "./modules/patchEvent";
