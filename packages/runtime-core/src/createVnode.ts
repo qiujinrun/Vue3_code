@@ -1,5 +1,7 @@
 import { isString, ShapeFlags } from "@vue/shared";
 
+export const Text = Symbol("Text")
+export const Fragment = Symbol("Fragment");
 export function isVnode(value) { // 判断是否是一个 vnode 节点
     return value.__v_isVnode; // 判断是否有 __v_isVnode 属性
 }

@@ -1,5 +1,6 @@
 import { ShapeFlags } from "@vue/shared";
-import { isSameVnode } from "./createVnode";
+import { Fragment, isSameVnode, Text } from "./createVnode";
+import { getSequence } from "./seq";
 
 export function createRenderer(renderOptions) {
     //core中不关心如何渲染
@@ -27,7 +28,7 @@ export function createRenderer(renderOptions) {
         //创建真实节点
         // const el = vnode.el = hostCreateElement(vnode.type);  
         const { type, props, children, ShapeFlag } = vnode;
-        console.log(props, 'mountElement');
+        // console.log(props, 'mountElement');
         const el = (vnode.el = hostCreateElement(type));
         //处理props
         if (props) {
@@ -70,6 +71,7 @@ export function createRenderer(renderOptions) {
         }
     }
 
+    //vue3中分为两种 全量diff (递归diff) 快速diff(靶向更新)-> 基于模板编译的
     const patchKeyedChildren = (c1, c2, el) => { //比较两个子节点的差异
         let i = 0; //旧的开始
         let e1 = c1.length - 1; //旧的结束
@@ -144,17 +146,25 @@ export function createRenderer(renderOptions) {
             }
             //调整顺序
             //可以按照新的队列，倒叙插入，通过参照物往前插入
-            
+            //插入过程中，可能有新的元素的多，需要创建
+            //先从索引为3的位置倒序插入
+
+            let increasingSeq = getSequence(newIndexToOldMapIndex);
+            // console.log(increasingSeq)
+            let j = increasingSeq.length - 1;//索引
             for (let i = toBePatched; i >= 0; i--) {
                 let newIndex = s2 + i;//对应的索引，找他的下一个元素作为参照物来进行插入  
                 let anchor = c2[newIndex + 1]?.el
                 let vnode = c2[newIndex];
-
-
-                if (!vnode.el) {//新列表中新增的元素
+                if (!vnode.el) {
+                    //新列表中新增的元素
                     patch(null, vnode, el, anchor)//创建h插入
                 } else {
-                    hostInsert(vnode.el, el, anchor)//接着倒叙插入
+                    if (i == increasingSeq[j]) {
+                        j--;//做了diff算法的优化
+                    } else {
+                        hostInsert(vnode.el, el, anchor)//接着倒叙插入
+                    }
                 }
 
             }
@@ -214,6 +224,28 @@ export function createRenderer(renderOptions) {
 
         PatchChildren(n1, n2, el); //比较子节点
     }
+
+    const processText = (n1,n2,container)=>{
+        if (n1 == null) {
+            //1.虚拟节点要关联真实节点
+            //2.将节点插入到页面中
+            hostInsert( n2.el = hostCreateText(n2.children),container);
+        } else {
+            const el = (n2.el = n1.el)
+            if (n1.children !== n2.children) {
+                hostSetText(el,n2.children);
+            }
+        }
+    }
+
+    const processFragment = (n1,n2,container) =>{
+        if (n1 == null) {
+            mountChildren(n2.children,container)
+        } else {
+            PatchChildren(n1,n2,container);
+        }
+    }
+
     //渲染走这里，更新也走这里
     const patch = (n1, n2, container, anchor = null) => {
         if (n1 === n2) {
@@ -223,11 +255,27 @@ export function createRenderer(renderOptions) {
             unmount(n1);
             n1 = null;
         }
-        processElement(n1, n2, container, anchor);//处理元素
+
+        const { type } = n2;
+        switch (type) {
+            case Text:
+                processText(n1, n2,container);
+                break;
+            case Fragment:
+                processFragment(n1,n2,container);
+                break;
+            default:
+                processElement(n1,n2,container,anchor);
+        }
     }
 
     const unmount = (vnode) => {
-        hostRemove(vnode.el);
+        if(vnode.type === Fragment) {
+            unmountChildren(vnode.children);
+        } else {
+            hostRemove(vnode.el);
+        }
+
     }
 
     //多次调用render时，会进行虚拟节点的比较，在进行更新
@@ -235,11 +283,12 @@ export function createRenderer(renderOptions) {
         if (vnode == null) {
             // console.log('vnode is null');
             unmount(container._vnode)
-        }
-        //将虚拟节点变成真实节点进行渲染
-        //第一个参数是旧的节点，第二个参数是新的节点，第三个参数是容器
-        patch(container._vnode || null, vnode, container);
-        container._vnode = vnode;
+        } else {
+             //将虚拟节点变成真实节点进行渲染
+            //第一个参数是旧的节点，第二个参数是新的节点，第三个参数是容器
+            patch(container._vnode || null, vnode, container);
+            container._vnode = vnode;
+        }  
     };
     return {
         render,
