@@ -1,4 +1,4 @@
-import { isString, ShapeFlags } from "@vue/shared";
+import { isObject, isString, ShapeFlags } from "@vue/shared";
 
 export const Text = Symbol("Text")
 export const Fragment = Symbol("Fragment");
@@ -9,7 +9,11 @@ export function isSameVnode(n1, n2) { // 判断两个 vnode 节点是否是同�
     return n1.type === n2.type && n1.key === n2.key; // 判断类型和 key 是否相同
 }
 export function createVnode(type, props, children?) {
-    const ShapeFlag = isString(type) ? ShapeFlags.ELEMENT : 0; // 判断节点类型，是元素节点还是文本节点
+    const ShapeFlag = isString(type) 
+    ? ShapeFlags.ELEMENT 
+    : isObject(type) 
+    ? ShapeFlags.STATEFUL_COMPONENT 
+    : 0; // 判断节点类型，是元素节点还是文本节点
     const vnode = {
         __v_isVnode: true, // 标识是一个 vnode 节点
         type, // 节点类型，比如 div、span、p 等
