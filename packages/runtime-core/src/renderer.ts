@@ -2,6 +2,7 @@ import { ShapeFlags } from "@vue/shared";
 import { Fragment, isSameVnode, Text } from "./createVnode";
 import { getSequence } from "./seq";
 import { reactive, ReactiveEffect } from "@vue/reactivity";
+import { queueJob } from "./scheduler";
 
 export function createRenderer(renderOptions) {
     //core中不关心如何渲染
@@ -246,24 +247,52 @@ export function createRenderer(renderOptions) {
             PatchChildren(n1, n2, container);
         }
     }
+    //初始化属性
+    const initProps = (instance, rawProps) => {
+        const props = {};
+        const attrs = {};
+        const propsOptions = instance.propsOptions || {};
 
-    const mountComponent = (n2, container, anchor) => {
+        if (rawProps) {
+            for (let key in rawProps) {//用所有的来分裂
+                const value = rawProps[key];
+                if (key in propsOptions) {
+                    props[key] = value;//props不需要深度代理，组件不能更改属性
+                } else {
+                    attrs[key] = value;
+                }
+            }
+        }
+        instance.attrs = attrs;
+        instance.props = reactive(props);
+    }
+    const mountComponent = (vnode, container, anchor) => {
         //组件可以基于自己的状态重新渲染,effect
-        const { data = () => { }, render } = n2.type;
+        const { data = () => { }, render, props: propsOptions = {} } = vnode.type;
 
         const state = reactive(data());//组件的状态
 
         const instance = {
             state,//状态
-            vnode: n2,//组件的虚拟节点
+            vnode,//组件的虚拟节点
             subTree: null, //子树
             isMounted: false,//是否挂载完成
             update: null,//组件的更新的函数
+            props: {},
+            attrs: {},
+            propsOptions,
+            component: null,
         }
+        //根据propsOptions来区分出prop和attr
+        vnode.component = instance; ``
+        //元素更新 n2.el = n1.el
+        //组件更新 n2.subTree.el = n1.subTree.el
+        initProps(instance, vnode.props);
+        console.log(instance)
 
         const componentUpdateFn = () => {
-            
-            if(!instance.isMounted){
+
+            if (!instance.isMounted) {
                 //如果是第一次渲染
                 const subTree = render.call(state, state);
                 //需要在这里区分，是第一次渲染还是其他
@@ -272,15 +301,16 @@ export function createRenderer(renderOptions) {
                 instance.subTree = subTree;
             } else {
                 //基于状态的组件更新
-                const subTree = render.call(state,state);
-                patch(instance.subTree,subTree,container,anchor);
+                const subTree = render.call(state, state);
+                patch(instance.subTree, subTree, container, anchor);
                 instance.subTree = subTree
 
             }
 
         }
-
-        const effect = new ReactiveEffect(componentUpdateFn, () => update())
+        //  响应式状态
+        const effect = new ReactiveEffect(componentUpdateFn,
+            () => queueJob(update()))
 
         const update = instance.update = () => {
             effect.run();
@@ -319,7 +349,7 @@ export function createRenderer(renderOptions) {
                 //元素
                 if (ShapeFlag & ShapeFlags.ELEMENT) {
                     processElement(n1, n2, container, anchor);//对元素做处理
-                //组件
+                    //组件
                 } else if (ShapeFlag & ShapeFlags.COMPONENT) {
                     //对组件的处理，vue3中函数式组件，已经废弃了，没有性能节约
                     processComponent(n1, n2, container, anchor)

@@ -73,7 +73,7 @@ export class ReactiveEffect {
         try {
             activeEffect = this;//将当前的effect实例赋值给全局变量
 
-            //effect重新执行前将上一次的依赖情况
+            //effect重新执行前将上一次的依赖情况删除
             preCleanEffect(this);
             this._running++;
             return this.fn();//依赖收集
