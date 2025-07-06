@@ -69,18 +69,23 @@ const handler = {
         return true;
     }
 }
+
+//初始化组件实例，并建立器响应式数据原理
 export function setupComponent(instance) {
     const { vnode } = instance;
     //赋值属性
     initProps(instance, vnode.props);
-    //赋值代理对象
+    //赋值代理对象，最终会作为 data() 或 render() 中的 this 或上下文
     instance.proxy = new Proxy(instance,handler)
 
-    const {data,render} = vnode.type 
-    if (!isFunction(data)) return console.warn('data option must be a function');
 
-    //data 中可以拿到props
-    instance.data = reactive(data.call(instance.proxy));
 
+    const {data = () => {},render} = vnode.type 
+    if (!isFunction(data))  {
+        console.warn('data option must be a function');
+    } else {
+        //data 中可以拿到props
+        instance.data = reactive(data.call(instance.proxy));  
+    }
     instance.render = render;
 } 

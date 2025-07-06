@@ -248,12 +248,12 @@ export function createRenderer(renderOptions) {
             PatchChildren(n1, n2, container);
         }
     }
-    
 
-    function setupRenderEffect(instance,container,anchor){
-        const {render} = instance;
+
+    function setupRenderEffect(instance, container, anchor) {
+        const { render } = instance;
         const componentUpdateFn = () => {
-            
+
             if (!instance.isMounted) {
                 //传入的参数是代理对象
                 const subTree = render.call(instance.proxy, instance.proxy);   //改变this指向，this指向instance.proxy
@@ -270,6 +270,7 @@ export function createRenderer(renderOptions) {
             }
         }
         //  响应式状态
+        //用于追踪依赖，在响应式数据变化时重新调用 componentUpdateFn
         const effect = new ReactiveEffect(componentUpdateFn,
             () => queueJob(update()))
 
@@ -284,9 +285,10 @@ export function createRenderer(renderOptions) {
         const instance = (vnode.component = createComponentInstance(vnode));
 
         //2. 给实例赋值属性
+        //连接component.ts文件
         setupComponent(instance)
 
-        setupRenderEffect(instance,container,anchor);
+        setupRenderEffect(instance, container, anchor);
         //组件可以基于自己的状态重新渲染，effect
 
         //根据propsOptions来区分出props,attrs
@@ -298,12 +300,49 @@ export function createRenderer(renderOptions) {
         //组件更新 n2.subTree.el = n1.subTree.el
     }
 
-
+    //比较两个差异
+    const hasPropsChange = (prevProps, nextProps) => {
+        let nkeys = Object.keys(nextProps)
+        if (nkeys.length !== Object.keys(prevProps).length) {
+            return true;
+        }
+        for (let i = 0; i < nkeys.length; i++) {
+            const key = nkeys[i];
+            if (nextProps[key] !== prevProps[key]) {
+                return true;
+            }
+        }
+        return false;
+    }
+    //更新属性
+    const updateProps = (instance, prevProps, nextProps) => {
+        //instance.props ->
+        if (hasPropsChange(prevProps, nextProps)) { //查看属性是否存在变化
+            //看属性是否存在变化
+            for(let key in nextProps){
+                //用新的覆盖掉所有老的
+                instance.props[key] = nextProps[key];
+            }
+            for(let key in instance.props) {
+                //删除老的多余的
+                if(key in nextProps) {
+                    delete instance.props[key];
+                }
+            }
+        }
+    }
+    const updateComponent = (n1, n2) => {
+        const instance = (n2.component = n1.component); //复用组件的实例
+        const { props: prevProps } = n1;
+        const { props: nextProps } = n2;
+        updateProps(instance, prevProps, nextProps)
+    }
     const processComponent = (n1, n2, container, anchor) => {
         if (n1 === null) {
             mountComponent(n2, container, anchor);
         } else {
             //组件更新
+            updateComponent(n1, n2);
         }
     }
     //渲染走这里，更新也走这里
