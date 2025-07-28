@@ -30,7 +30,7 @@ export function createRenderer(renderOptions) {
     const mountElement = (vnode, container, anchor) => {
         //创建真实节点
         // const el = vnode.el = hostCreateElement(vnode.type);  
-        const { type, props, children, ShapeFlag } = vnode;
+        const { type, props, children, shapeFlag } = vnode;
         // console.log(props, 'mountElement');
         const el = (vnode.el = hostCreateElement(type));
         //处理props
@@ -39,9 +39,9 @@ export function createRenderer(renderOptions) {
                 hostPatchProp(el, key, null, props[key]);
             }
         }
-        if (ShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+        if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
             hostSetElementText(el, children);
-        } else if (ShapeFlag & ShapeFlags.ARRAY_CHILDREN) {//递归
+        } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {//递归
             mountChildren(children, el);
         }
         //将真实节点插入到容器中
@@ -179,11 +179,11 @@ export function createRenderer(renderOptions) {
     const PatchChildren = (n1, n2, el) => {
         const c1 = n1.children; //旧的子节点
         const c2 = n2.children; //新的子节点
-        const preShapeFlag = n1.ShapeFlag; //旧的子节点的类型
-        const ShapeFlag = n2.ShapeFlag; //新的子节点的类型
+        const preShapeFlag = n1.shapeFlag; //旧的子节点的类型
+        const shapeFlag = n2.shapeFlag; //新的子节点的类型
 
         //1.新的是文本，旧的是数组,卸载旧的子节点
-        if (ShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+        if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
             if (preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
                 //卸载旧的子节点
                 unmountChildren(c1);
@@ -194,7 +194,7 @@ export function createRenderer(renderOptions) {
             }
         } else { //2.新的是数组，旧的是数组,全量diff算法
             if (preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-                if (ShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+                if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
                     //全量diff算法，两个数组的比对
                     //比较两个子节点的差异
                     patchKeyedChildren(c1, c2, el);
@@ -207,7 +207,7 @@ export function createRenderer(renderOptions) {
                     hostSetElementText(el, ''); //直接替换文本
                 }
 
-                if (ShapeFlag & ShapeFlags.ARRAY_CHILDREN) { //新的是数组，旧的是文本,直接替换文本
+                if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) { //新的是数组，旧的是文本,直接替换文本
                     mountChildren(c2, el); //挂载新的子节点
                 }
             }
@@ -355,7 +355,7 @@ export function createRenderer(renderOptions) {
             n1 = null;
         }
 
-        const { type, ShapeFlag } = n2;
+        const { type, shapeFlag } = n2;
         switch (type) {
             //文本
             case Text:
@@ -367,10 +367,10 @@ export function createRenderer(renderOptions) {
                 break;
             default:
                 //元素
-                if (ShapeFlag & ShapeFlags.ELEMENT) {
+                if (shapeFlag & ShapeFlags.ELEMENT) {
                     processElement(n1, n2, container, anchor);//对元素做处理
                     //组件
-                } else if (ShapeFlag & ShapeFlags.COMPONENT) {
+                } else if (shapeFlag & ShapeFlags.COMPONENT) {
                     //对组件的处理，vue3中函数式组件，已经废弃了，没有性能节约
                     processComponent(n1, n2, container, anchor)
                 }

@@ -9,7 +9,7 @@ export function isSameVnode(n1, n2) { // 判断两个 vnode 节点是否是同�
     return n1.type === n2.type && n1.key === n2.key; // 判断类型和 key 是否相同
 }
 export function createVnode(type, props, children?) {
-    const ShapeFlag = isString(type) 
+    const shapeFlag = isString(type) 
     ? ShapeFlags.ELEMENT 
     : isObject(type) 
     ? ShapeFlags.STATEFUL_COMPONENT 
@@ -21,16 +21,16 @@ export function createVnode(type, props, children?) {
         children, // 子节点，可以是一个字符串、数组、vnode 等
         key: props?.key, // 节点的 key，用于 diff 算法
         el: null, // 虚拟节点对应的真实 DOM 元素
-        ShapeFlag
+        shapeFlag
 
     };
     // 判断子节点的类型
     if (children) {
         if (Array.isArray(children)) { // 子节点是数组，说明是多个子节点
-            vnode.ShapeFlag |= ShapeFlags.ARRAY_CHILDREN; // 标识是一个数组子节点 
+            vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN; // 标识是一个数组子节点 
         } else { // 子节点是字符串，说明是一个文本节点
             children = String(children); // 转换为字符串
-            vnode.ShapeFlag |= ShapeFlags.TEXT_CHILDREN; // 标识是一个文本子节点
+            vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN; // 标识是一个文本子节点
         }
     }
     return vnode;
