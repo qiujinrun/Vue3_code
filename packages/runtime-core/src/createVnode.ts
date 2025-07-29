@@ -28,7 +28,10 @@ export function createVnode(type, props, children?) {
     if (children) {
         if (Array.isArray(children)) { // 子节点是数组，说明是多个子节点
             vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN; // 标识是一个数组子节点 
-        } else { // 子节点是字符串，说明是一个文本节点
+        } else if (isObject(children)) {
+            vnode.shapeFlag |= ShapeFlags.SLOTS_CHILDREN
+        } 
+        else { // 子节点是字符串，说明是一个文本节点
             children = String(children); // 转换为字符串
             vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN; // 标识是一个文本子节点
         }
