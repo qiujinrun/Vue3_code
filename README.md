@@ -151,10 +151,6 @@ export function createRenderer(renderOptions) {
 3. 研究`@vue/runtime-core`虚拟DOM实现
 4. 最后学习`@vue/runtime-dom`平台相关代码
 
-## 🤝 贡献
-
-欢迎提交Issue和Pull Request来改进这个学习项目！
-
 ## 📄 许可证
 
 ISC License
